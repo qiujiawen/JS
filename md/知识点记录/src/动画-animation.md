@@ -59,17 +59,17 @@ animation-name animation-duration // 动画的名称、持续时间
 
 表示CSS动画是否反向播放。
 
-animation-direction: normal 正序播放
+>animation-direction: normal 正序播放
 
-animation-direction: reverse 倒序播放
+>animation-direction: reverse 倒序播放
 
-animation-direction: alternate 交替播放
+>animation-direction: alternate 交替播放
 
-animation-direction: alternate-reverse 反向交替播放
+>animation-direction: alternate-reverse 反向交替播放
 
-animation-direction: normal, reverse
+>animation-direction: normal, reverse
 
-animation-direction: alternate, reverse, normal
+>animation-direction: alternate, reverse, normal
 
 #### animation-delay - 动画延迟
 
@@ -83,22 +83,22 @@ animation-direction: alternate, reverse, normal
 
 是指给定动画播放前后应用元素的样式
 
-animation-fill-mode: none 动画执行前后不改变任何样式
+>animation-fill-mode: none 动画执行前后不改变任何样式
 
-animation-fill-mode: forwards 保持目标动画最后一帧的样式
+>animation-fill-mode: forwards 保持目标动画最后一帧的样式
 
-animation-fill-mode: backwards 保持目标动画第一帧的样式
+>animation-fill-mode: backwards 保持目标动画第一帧的样式
 
-animation-fill-mode: both 动画将会执行 forwards 和backwards 执行的动作
+>animation-fill-mode: both 动画将会执行 forwards 和backwards 执行的动作
 
 #### animation-timing-function
 
 定义动画是否运行或者暂停。可以确定查询它来确定动画是否运行。
 默认值为running
 
-running 动画正常播放
+>running 动画正常播放
 
-paused 动画暂停播放
+>paused 动画暂停播放
 
 
 
