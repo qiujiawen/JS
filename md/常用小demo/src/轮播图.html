@@ -75,44 +75,165 @@
         constructor(option) {
             this.option = option;
             this.init();
-            this.swipePictureHandle();
+            this.swipePicture();
         }
 
         init() {
             let {dom,swipePicture} = this.option,
                 inner = `<section class="carousel-component">
-                        <ul class="list-wrap">${this.getImg().join('')}</ul>
-                        <ol class="dot-wrap">${this.getDot().join('')}</ol>
+                        <ul class="list-wrap">${this.createElement().li}</ul>
+                        <ol class="dot-wrap">${this.createElement().span}</ol>
                     </section>`;
             dom.innerHTML = inner;
         }
 
-        //  生成图片
-        getImg() {
+        //  生成li元素和span元素
+        createElement() {
             let {data} = this.option;
 
-            return data.map((item, index) => {
-                return (
-                    `<li data-key=${index}><img src=${item}></li>`
-                )
-            })
+            return {
+                li: data.map((item, index) => {
+                    return (
+                        `<li data-key=${index}><img src=${item}></li>`
+                    )
+                }).join(''),
+                span: data.map((item,index)=>{
+                    return `<span data-key=${index} class=${ index === 0 ? 'active' : ''}></span>`
+                }).join('')
+            };
         }
 
-        //  生成下标
-        getDot() {
-            let {data} = this.option;
+        //  图片无缝滑动
+        swipePicture() {
 
-            return data.map((item,index)=>{
-                return `<span data-key=${index} class=${ index === 0 ? 'active' : ''}></span>`
-            });
-        }
-
-        //  手指滑动图片处理函数
-        swipePictureHandle(){
             let {dom} = this.option,
-                listWrap = dom.querySelector('.list-wrap'),
-                dotWrap = dom.querySelector('.dot-wrap');
-            swipePicture(listWrap,dotWrap);
+                listWrapDom = dom.querySelector('.list-wrap'),
+                dotWrapDom = dom.querySelector('.dot-wrap'),
+                arrNav = dotWrapDom.querySelectorAll('span');
+
+            listWrapDom.innerHTML += listWrapDom.innerHTML;
+            let arrLi = listWrapDom.querySelectorAll('li');
+            listWrapDom.style.width = `${arrLi.length}00vw`;
+
+            let disPoint = {},      //  手指移动的偏移量
+                imgNewPoint = 0,    //  图片最新的坐标
+                imgOldPoint = 0,    //  图片上一次的坐标
+                page = 0,           //  设置图片和page相匹配
+                isDirFirst = true,  //  是不是第一次判断出手指滑动方向
+                isDir = false,      //  是不是判断出手指滑动方向
+                viewportWidth = window.innerWidth,  //  视口宽度
+                time = 0;           //  定时器
+
+            // 手指按下处理函数
+            listWrapDom.addEventListener('touchstart', function (e) {
+
+                clearInterval(time);                        //  清理定时器
+                listWrapDom.style.transition = 'none';      //  手指按下瞬间取消过渡
+                isDirFirst = true;                          //  手指按下的时候重置
+                isDir = false;                              //  手指按下的时候重置
+
+                this.point = {
+                    x: e.changedTouches[0].pageX,
+                    y: e.changedTouches[0].pageY
+                };
+
+                //  图片的无缝处理
+                if (page === 0) {
+                    page = arrNav.length;
+                } else if (page === listWrapDom.children.length - 1) {
+                    page = arrNav.length - 1;
+                }
+
+                //  变量page和图片联动
+                imgNewPoint = -page * viewportWidth;
+                listWrapDom.style.webkitTransform = listWrapDom.style.transform = `translate3d(${imgNewPoint}px,0,0)`;
+
+                //  储存上一次图片的坐标
+                imgOldPoint = imgNewPoint;
+
+            });
+
+            // 手指移动处理函数
+            listWrapDom.addEventListener('touchmove', function (e) {
+
+                let nowPoint = {
+                    x: e.changedTouches[0].pageX,
+                    y: e.changedTouches[0].pageY
+                };
+
+                disPoint = {
+                    x: nowPoint.x - this.point.x,
+                    y: nowPoint.y - this.point.y
+                };
+
+                //  判断手指方向
+                if (isDirFirst && Math.abs(disPoint.x - disPoint.y) > 5){
+                    if (Math.abs(disPoint.x) > Math.abs(disPoint.y)){
+                        isDir = true;
+                        isDirFirst = false;
+                    }
+                }
+
+                //  只有手指是左右滑动的时候才执行图片切换
+                if (isDir){
+                    imgNewPoint = imgOldPoint + disPoint.x;
+                    listWrapDom.style.webkitTransform = listWrapDom.style.transform = `translate3d(${imgNewPoint}px,0,0)`;
+                    e.preventDefault(); //  滑动图片的时候禁止页面上下的滚动条滚动
+                }
+            });
+
+            // 手指抬起处理函数
+            listWrapDom.addEventListener('touchend', function (e) {
+
+                if (isDir){
+
+                    let nowPointX = e.changedTouches[0].pageX,
+                        disPointX = nowPointX - this.point.x;
+
+                    arrNav[page%arrNav.length].classList.remove('active'); //   当前下标取消选择状态
+
+                    // 判断滑动距离是不是超过100
+                    if (Math.abs(disPointX) > 100) {
+                        listWrapDom.style.transition = '.3s';
+                        page -= disPointX / Math.abs(disPointX);  //  超过100，图片显示下一张或者上一张
+                        imgNewPoint = -page * viewportWidth;
+                    } else if (Math.abs(disPointX) <= 100) {
+                        listWrapDom.style.transition = '.1s';
+                        imgNewPoint = -page * viewportWidth;    //  100以内，图片页数保持不变
+                    }
+
+                    //  滑动图片的位移
+                    listWrapDom.style.webkitTransform = listWrapDom.style.transform = `translate3d(${imgNewPoint}px,0,0)`;
+                    arrNav[page%arrNav.length].classList.add('active'); //  下标选中状态
+                    autoPlay()
+                }
+            });
+
+            autoPlay();
+            function autoPlay() {
+
+                time = setInterval(function () {
+
+                    arrNav[page%arrNav.length].classList.remove('active');
+                    if (page === listWrapDom.children.length - 1){
+                        page = arrNav.length - 1;
+                        listWrapDom.style.transition = 'none';
+                        imgNewPoint = -page * viewportWidth;
+                        listWrapDom.style.webkitTransform = listWrapDom.style.transform = `translate3d(${imgNewPoint}px,0,0)`;
+                    }
+
+                    //  给最后一张图片切换时一点延时时间
+                    setTimeout(function () {
+                        page++;
+                        listWrapDom.style.transition = '1s';
+                        imgNewPoint = -page * viewportWidth;
+                        listWrapDom.style.webkitTransform = listWrapDom.style.transform = `translate3d(${imgNewPoint}px,0,0)`;
+                        arrNav[page%arrNav.length].classList.add('active');
+                    },30)
+
+                },2000);
+            }
+
         }
     }
 
@@ -125,136 +246,6 @@
         ],
         isDot: true
     });
-    
-    //  图片无缝滑动
-    function swipePicture(listWrapDom,dotWrapDom) {
-
-        let arrNav = dotWrapDom.querySelectorAll('span');
-
-        listWrapDom.innerHTML += listWrapDom.innerHTML;
-        let arrLi = listWrapDom.querySelectorAll('li');
-        listWrapDom.style.width = `${arrLi.length}00vw`;
-
-        let disPoint = {},      //  手指移动坐标
-            imgNewPoint = 0,    //  图片最新的坐标
-            imgOldPoint = 0,    //  图片上一次的坐标
-            page = 0,           //  设置图片和page相匹配
-            isDirFirst = true,  //  是不是第一次判断出手指滑动方向
-            isDir = false,      //  是不是判断出手指滑动方向
-            viewportWidth = window.innerWidth,  //  视口宽度
-            time = 0;           //  定时器
-
-        // 手指按下处理函数
-        listWrapDom.addEventListener('touchstart', function (e) {
-
-            listWrapDom.style.transition = 'none';      //  手指按下瞬间取消过渡
-            isDirFirst = true;                          //  手指按下的时候重置
-            isDir = false;                              //  手指按下的时候重置
-            clearInterval(time);                        //  清理定时器
-
-            this.point = {
-                x: e.changedTouches[0].pageX,
-                y: e.changedTouches[0].pageY
-            };
-
-            //  图片的无缝处理
-            if (page === 0) {
-                page = arrNav.length;
-            } else if (page === listWrapDom.children.length - 1) {
-                page = arrNav.length - 1;
-            }
-
-            //  变量page和图片联动
-            imgNewPoint = -page * viewportWidth;
-            listWrapDom.style.webkitTransform = listWrapDom.style.transform = `translate3d(${imgNewPoint}px,0,0)`;
-
-            //  储存上一次图片的坐标
-            imgOldPoint = imgNewPoint;
-        });
-
-        // 手指移动处理函数
-        listWrapDom.addEventListener('touchmove', function (e) {
-
-            let nowPoint = {
-                x: e.changedTouches[0].pageX,
-                y: e.changedTouches[0].pageY
-            };
-
-            disPoint = {
-                x: nowPoint.x - this.point.x,
-                y: nowPoint.y - this.point.y
-            };
-
-            //  判断手指方向
-            if (isDirFirst && Math.abs(disPoint.x - disPoint.y) > 5){
-                if (Math.abs(disPoint.x) > Math.abs(disPoint.y)){
-                    isDir = true;
-                    isDirFirst = false;
-                }
-            }
-
-            //  只有手指是左右滑动的时候才执行图片切换
-            if (isDir){
-                imgNewPoint = imgOldPoint + disPoint.x;
-                listWrapDom.style.webkitTransform = listWrapDom.style.transform = `translate3d(${imgNewPoint}px,0,0)`;
-                e.preventDefault(); //  滑动图片的时候禁止页面上下的滚动条滚动
-            }
-        });
-
-        // 手指抬起处理函数
-        listWrapDom.addEventListener('touchend', function (e) {
-
-            if (isDir){
-
-                let nowPointX = e.changedTouches[0].pageX,
-                    disPointX = nowPointX - this.point.x;
-
-                arrNav[page%arrNav.length].classList.remove('active'); //   当前下标取消选择状态
-
-                // 判断滑动距离是不是超过100
-                if (Math.abs(disPointX) > 100) {
-                    listWrapDom.style.transition = '1s';
-                    page -= disPointX / Math.abs(disPointX);  //  超过100，图片显示下一张或者上一张
-                    imgNewPoint = -page * viewportWidth;
-                } else if (Math.abs(disPointX) <= 100) {
-                    listWrapDom.style.transition = '.3s';
-                    imgNewPoint = -page * viewportWidth;    //  100以内，图片页数保持不变
-                }
-
-                //  滑动图片的位移
-                listWrapDom.style.webkitTransform = listWrapDom.style.transform = `translate3d(${imgNewPoint}px,0,0)`;
-                arrNav[page%arrNav.length].classList.add('active'); //  下标选中状态
-                autoPlay();
-            }
-        });
-
-
-        autoPlay();
-        function autoPlay() {
-
-            time = setInterval(function () {
-
-                arrNav[page%arrNav.length].classList.remove('active');
-                if (page === listWrapDom.children.length - 1){
-                    page = arrNav.length - 1;
-                    listWrapDom.style.transition = 'none';
-                    imgNewPoint = -page * viewportWidth;
-                    listWrapDom.style.webkitTransform = listWrapDom.style.transform = `translate3d(${imgNewPoint}px,0,0)`;
-                }
-
-                //  给最后一张图片切换时一点延时时间
-                setTimeout(function () {
-                    page++;
-                    listWrapDom.style.transition = '1s';
-                    imgNewPoint = -page * viewportWidth;
-                    listWrapDom.style.webkitTransform = listWrapDom.style.transform = `translate3d(${imgNewPoint}px,0,0)`;
-                    arrNav[page%arrNav.length].classList.add('active');
-                },30)
-
-            },2000);
-        }
-
-    }
 
 </script>
 </body>
