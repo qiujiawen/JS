@@ -100,5 +100,55 @@ animation-name animation-duration // 动画的名称、持续时间
 
 >paused 动画暂停播放
 
+## 动画-animation-事件
 
+当你需要在某个动画开始或者结束时,去触发某一个事件,那么这时候可以用到监听animation事件方法。
 
+### -webkit-animation动画其实有三个事件:
+
+animation涉及到的事件有 animationStart、animationEnd、animationIteration三个。
+
+[注意] 对于safari浏览器，animation的事件为webkitAnimationStart、webkitAnimationEnd、webkitAnimationIteration
+
+```
+ //开始事件 webkitAnimationStart
+ //结束事件 webkitAnimationEnd
+ //重复运动事件 webkitAnimationIteration
+```
+
+#### animationStart
+
+发生在动画开始时
+
+1、如果存在delay，且delay为正值，则元素等待延迟完毕后，再触发该事件
+
+2、如果delay为负值，则元素先将初始值变为delay的绝对值时，再触发该事件
+
+#### animationEnd
+
+发生在动画结束时
+
+#### animationIteration
+
+发生在动画的一次循环结束时，只有当iteration-count循环次数大于1时，触发该事件
+
+#### 补充
+
+只有改变animation-name时，才会使animation动画效果重新触发。
+
+example：
+
+```
+Element.style.animationName = 'none';
+setTimeout(function(){
+    Element.style.animationName = 'aName';
+},100);
+```
+
+#### 属性
+
+这三个事件的事件对象，都有animationName和elapsedTime属性这两个私有属性
+
+> animationName属性: 返回产生过渡效果的CSS属性名
+
+> elapsedTime属性: 动画已经运行的秒数
