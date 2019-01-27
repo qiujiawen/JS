@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,user-scalable=no">
+    <title>场景动画</title>
+</head>
+<style>
+
+    html {
+        font-size: 15.625vw;;
+    }
+
+    body {
+        margin: 0;
+        font-size: .28rem;
+        -webkit-text-size-adjust: none;
+        font-family: Tahoma, Arial, Roboto, "Droid Sans", "Helvetica Neue", "Droid Sans Fallback", "Heiti SC", sans-self;
+    }
+
+    ul {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+    }
+
+    #page {
+        width: 100vw;
+        height: 100vh;
+        position: relative;
+    }
+
+    .scenes-list {
+        overflow: hidden;
+        color: #fff;
+        font-size: .4rem;
+        text-align: center;
+        width: 100vw;
+        height: 100vh;
+        position: relative;
+    }
+
+    .scenes-list li {
+        width: 100vw;
+        height: 100vh;
+        display: none;
+        position: absolute;
+        left: 0;
+        top: 0;
+        z-index: 5;
+    }
+
+    .scenes-list li:nth-of-type(1) {
+        background: cadetblue;
+        display: block;
+    }
+
+    .scenes-list li:nth-of-type(2) {
+        background: gainsboro;
+    }
+
+    .scenes-list li:nth-of-type(3) {
+        background: bisque;
+    }
+
+    .scenes-list li:nth-of-type(4) {
+        background: azure;
+    }
+
+    .scenes-list .z-index {
+        z-index: 6;
+    }
+
+    .scenes-list li p {
+        margin-top: 85%;
+        opacity: 0;
+        transform: translate3d(5rem, 0, 0);
+    }
+
+    .scenes-list li .animation-p {
+        animation: 1.5s animation-p linear forwards;
+        -webkit-animation: 1.5s animation-p linear forwards;
+    }
+
+    @keyframes animation-p {
+
+        30% {
+            opacity: 1;
+            transform: scale(1.1);
+            color: red;
+        }
+
+        70% {
+            opacity: 1;
+            transform: scale(.9);
+            color: yellow;
+        }
+
+        100% {
+            opacity: .3;
+            transform: translate3d(0, 0, 0) scale(1);
+            color: black;
+        }
+    }
+
+
+</style>
+<body>
+<div id="page">
+    <div class="scenes-wrap">
+        <ul class="scenes-list">
+            <li><p>世界那么大，有什么好看的 ​​​​</p></li>
+            <li><p>世界那么大，有什么好看的 ​​​​</p></li>
+            <li><p>世界那么大，有什么好看的 ​​​​</p></li>
+            <li><p>世界那么大，有什么好看的 ​​​​</p></li>
+        </ul>
+    </div>
+</div>
+<script>
+
+    let list = document.querySelector('#page .scenes-list'),
+        nowIndex = 0,                        //  当前页面的索引值
+        nextIndex = 0,                      //  下一个页面的索引值
+        viewportHeight = list.clientHeight, //  获取页面的高度
+        scales = 1 / 4,                     //  缩放比例
+        movePoint = {},                     //  移动触摸事件对象
+        startPoint = {};                    //  开始触摸事件对象
+        arrLi = list.querySelectorAll('li');
+
+    /**
+     *  手指开始触摸事件
+     */
+    list.addEventListener('touchstart', function (e) {
+
+        startPoint = {
+            x: e.changedTouches[0].pageX,
+            y: e.changedTouches[0].pageY
+        };
+
+        //  触摸开始时先把上一张页面重置默认
+        arrLi[nextIndex].classList.remove('z-index');
+        arrLi[nextIndex].style.transition = 'none';
+
+        //  除了上一张页面，每个页面保持是不显示状态
+        arrLi.forEach((item, index) => {
+            if (index !== nextIndex) {
+                item.style = 'display: none'
+            }
+        });
+
+        nowIndex = nextIndex;
+
+    });
+
+    /**
+     *  手指移动触摸事件
+     */
+    list.addEventListener('touchmove', function (e) {
+
+        let point = {
+            x: e.changedTouches[0].pageX,
+            y: e.changedTouches[0].pageY
+        };
+
+        movePoint = {
+            x: point.x - startPoint.x,
+            y: point.y - startPoint.y
+        };
+
+        //  当前页面的滑动样式
+        let scale = 1 - Math.abs(movePoint.y * scales) / viewportHeight;
+        arrLi[nowIndex].style.webkitTransform = arrLi[nowIndex].style.transform = `translate3d(0,${movePoint.y * scales}px,0) scale(${scale})`;
+
+        //  判断不同方向滑动下的计算
+        if (movePoint.y < 0) {
+
+            nextIndex = nowIndex === arrLi.length - 1 ? 0 : nowIndex + 1;
+            // arrLi[nextIndex].style.webkitTransform = arrLi[nextIndex].style.transform = `translate3d(0,${viewportHeight + movePoint.y}px,0)`;
+
+        } else if (movePoint.y > 0) {
+
+            nextIndex = nowIndex === 0 ? arrLi.length - 1 : nowIndex - 1;
+            // arrLi[nextIndex].style.webkitTransform = arrLi[nextIndex].style.transform = `translate3d(0,${-viewportHeight + movePoint.y}px,0)`;
+
+        }
+
+        //  下一个页面滑动的样式
+        let moveY = -movePoint.y / Math.abs(movePoint.y) * viewportHeight + movePoint.y;
+        arrLi[nextIndex].classList.add('z-index');
+        arrLi[nextIndex].style = 'display: block';
+        arrLi[nextIndex].style.webkitTransform = arrLi[nextIndex].style.transform = `translate3d(0,${moveY}px,0)`;
+
+    });
+
+    /**
+     *  手指结束触摸事件
+     */
+    list.addEventListener('touchend', function () {
+
+        //  手指抬起时，页面呈现的样式
+        arrLi[nextIndex].style.webkitTransform = arrLi[nextIndex].style.transform = 'translate3d(0,0,0)';
+        arrLi[nextIndex].style.transition = '.5s';
+
+        setTimeout(function () {
+            textAnimation(nextIndex)
+        },600);
+
+    });
+
+    textAnimation(0);
+
+    /**
+     *  文字的动画效果
+     */
+    function textAnimation(index) {
+
+        let list = document.querySelector('#page .scenes-list'),
+            arrLi = list.querySelectorAll('li'),
+            elementP = arrLi[index].querySelector('p');
+
+        elementP.classList.add('animation-p');
+    }
+
+</script>
+</body>
+</html>
