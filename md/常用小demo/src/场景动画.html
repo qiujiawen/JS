@@ -42,7 +42,6 @@
 
     .scenes-list li {
         width: 100vw;
-        height: 100vh;
         display: none;
         position: absolute;
         left: 0;
@@ -64,17 +63,17 @@
     }
 
     .scenes-list li:nth-of-type(4) {
-        background: azure;
+        background: cornflowerblue;
     }
 
     .scenes-list .z-index {
         z-index: 6;
+
     }
 
     .scenes-list li p {
-        margin-top: 85%;
         opacity: 0;
-        transform: translate3d(5rem, 0, 0);
+        transform: translate3d(-5rem, 0, 0);
     }
 
     .scenes-list li .animation-p {
@@ -103,6 +102,51 @@
         }
     }
 
+    .scenes-list .item-horizontal {
+        height: 4rem;
+    }
+
+    .scenes-list li p.item-text-horizontal {
+        margin-top: 29%
+    }
+
+    .scenes-list .item-vertical {
+        height: 100vh;
+    }
+
+    .scenes-list li p.item-text-vertical {
+        margin-top: 85%;
+    }
+
+    #page .dots-list {
+        height: .2rem;
+        position: absolute;
+        z-index: 10;
+    }
+
+    #page .dots-list-horizontal {
+        top: 3.5rem;
+        right: .1rem;
+    }
+
+    #page .dots-list-vertical {
+        bottom: .2rem;
+        right: .1rem;
+    }
+
+    #page .dots-list span {
+        width: .2rem;
+        height: .2rem;
+        border-radius: 50%;
+        background: #fff;
+        opacity: .5;
+        margin-right: .15rem;
+        float: left;
+    }
+
+    #page .dots-list span.active {
+        opacity: 1;
+    }
 
 </style>
 <body>
@@ -114,112 +158,442 @@
             <li><p>世界那么大，有什么好看的 ​​​​</p></li>
             <li><p>世界那么大，有什么好看的 ​​​​</p></li>
         </ul>
+        <nav class="dots-list"></nav>
     </div>
 </div>
 <script>
 
-    let list = document.querySelector('#page .scenes-list'),
-        nowIndex = 0,                        //  当前页面的索引值
-        nextIndex = 0,                      //  下一个页面的索引值
-        viewportHeight = list.clientHeight, //  获取页面的高度
-        scales = 1 / 4,                     //  缩放比例
-        movePoint = {},                     //  移动触摸事件对象
-        startPoint = {};                    //  开始触摸事件对象
-        arrLi = list.querySelectorAll('li');
+    class Scenes {
 
-    /**
-     *  手指开始触摸事件
-     */
-    list.addEventListener('touchstart', function (e) {
+        constructor(option) {
 
-        startPoint = {
-            x: e.changedTouches[0].pageX,
-            y: e.changedTouches[0].pageY
-        };
+            this.option = option;
+            this.timer = 0;
+            this.nowIndex = 0;
+            this.nextIndex = 0;
+            this.init();
 
-        //  触摸开始时先把上一张页面重置默认
-        arrLi[nextIndex].classList.remove('z-index');
-        arrLi[nextIndex].style.transition = 'none';
-
-        //  除了上一张页面，每个页面保持是不显示状态
-        arrLi.forEach((item, index) => {
-            if (index !== nextIndex) {
-                item.style = 'display: none'
-            }
-        });
-
-        nowIndex = nextIndex;
-
-    });
-
-    /**
-     *  手指移动触摸事件
-     */
-    list.addEventListener('touchmove', function (e) {
-
-        let point = {
-            x: e.changedTouches[0].pageX,
-            y: e.changedTouches[0].pageY
-        };
-
-        movePoint = {
-            x: point.x - startPoint.x,
-            y: point.y - startPoint.y
-        };
-
-        //  当前页面的滑动样式
-        let scale = 1 - Math.abs(movePoint.y * scales) / viewportHeight;
-        arrLi[nowIndex].style.webkitTransform = arrLi[nowIndex].style.transform = `translate3d(0,${movePoint.y * scales}px,0) scale(${scale})`;
-
-        //  判断不同方向滑动下的计算
-        if (movePoint.y < 0) {
-
-            nextIndex = nowIndex === arrLi.length - 1 ? 0 : nowIndex + 1;
-            // arrLi[nextIndex].style.webkitTransform = arrLi[nextIndex].style.transform = `translate3d(0,${viewportHeight + movePoint.y}px,0)`;
-
-        } else if (movePoint.y > 0) {
-
-            nextIndex = nowIndex === 0 ? arrLi.length - 1 : nowIndex - 1;
-            // arrLi[nextIndex].style.webkitTransform = arrLi[nextIndex].style.transform = `translate3d(0,${-viewportHeight + movePoint.y}px,0)`;
+            let {isDir, autoPlay} = this.option;
+            isDir === 'X' ? this.swipePictureX() : this.swipePictureY();
+            autoPlay ? this.autoPlay() : '';
+            this.textAnimation(0);
 
         }
 
-        //  下一个页面滑动的样式
-        let moveY = -movePoint.y / Math.abs(movePoint.y) * viewportHeight + movePoint.y;
-        arrLi[nextIndex].classList.add('z-index');
-        arrLi[nextIndex].style = 'display: block';
-        arrLi[nextIndex].style.webkitTransform = arrLi[nextIndex].style.transform = `translate3d(0,${moveY}px,0)`;
+        /**
+         *  初始化，根据option的参数进行页面样式的调整
+         */
+        init() {
 
-    });
+            let {dom, isDir, dots} = this.option,
+                list = dom.querySelector('.scenes-list'),
+                dotsList = dom.querySelector('.dots-list'),
+                arrLi = list.querySelectorAll('li');
 
-    /**
-     *  手指结束触摸事件
-     */
-    list.addEventListener('touchend', function () {
+            if (isDir === 'X') {
+                arrLi.forEach((item) => {
+                    item.class = '';
+                    item.classList.add('item-horizontal');
+                    let text = item.querySelector('p');
+                    text.classList.remove('item-text-vertical');
+                    text.classList.add('item-text-horizontal');
+                    dotsList.classList.add('dots-list-horizontal');
+                    dotsList.classList.remove('dots-list-vertical');
 
-        //  手指抬起时，页面呈现的样式
-        arrLi[nextIndex].style.webkitTransform = arrLi[nextIndex].style.transform = 'translate3d(0,0,0)';
-        arrLi[nextIndex].style.transition = '.5s';
+                });
+            } else if (isDir === 'Y') {
+                arrLi.forEach((item) => {
+                    item.class = '';
+                    item.classList.add('item-vertical');
+                    let text = item.querySelector('p');
+                    text.classList.remove('item-text-horizontal');
+                    text.classList.add('item-text-vertical');
+                    dotsList.classList.remove('dots-list-horizontal');
+                    dotsList.classList.add('dots-list-vertical');
+                });
+            }
 
-        setTimeout(function () {
-            textAnimation(nextIndex)
-        },600);
+            dots ? Scenes.createDots(arrLi.length) : '';
 
-    });
+        };
 
-    textAnimation(0);
+        /**
+         *  Y轴方向的无缝滑动
+         */
+        swipePictureY() {
 
-    /**
-     *  文字的动画效果
-     */
-    function textAnimation(index) {
+            let {dom} = this.option,
+                list = dom.querySelector('.scenes-list'),
+                that = this,
+                viewportHeight = list.clientHeight, //  获取页面的高度
+                scales = 1 / 4,                     //  缩放比例
+                prevIndex = 0,                      //  前一张图片
+                movePoint = {},                     //  移动触摸事件对象
+                startPoint = {},                    //  开始触摸事件对象
+                arrLi = list.querySelectorAll('li');
 
-        let list = document.querySelector('#page .scenes-list'),
-            arrLi = list.querySelectorAll('li'),
-            elementP = arrLi[index].querySelector('p');
+            /**
+             *  手指开始触摸事件
+             */
+            list.addEventListener('touchstart', function (e) {
 
-        elementP.classList.add('animation-p');
+                clearInterval(that.timer);
+
+                startPoint = {
+                    x: e.changedTouches[0].pageX,
+                    y: e.changedTouches[0].pageY
+                };
+
+                //  触摸开始时先把上一张页面重置默认
+                arrLi[that.nextIndex].classList.remove('z-index');
+                arrLi[that.nextIndex].style.transition = 'none';
+
+                that.nowIndex = that.nextIndex;
+
+            });
+
+            /**
+             *  手指移动触摸事件
+             */
+            list.addEventListener('touchmove', function (e) {
+
+                let point = {
+                    x: e.changedTouches[0].pageX,
+                    y: e.changedTouches[0].pageY
+                };
+
+                movePoint = {
+                    x: point.x - startPoint.x,
+                    y: point.y - startPoint.y
+                };
+
+                //  当前页面的滑动样式
+                let scale = 1 - Math.abs(movePoint.y * scales) / viewportHeight;
+                arrLi[that.nowIndex].style.webkitTransform = arrLi[that.nowIndex].style.transform = `translate3d(0,${movePoint.y * scales}px,0) scale(${scale})`;
+
+                //  判断不同方向滑动下的计算
+                if (movePoint.y < 0) {
+
+                    //  向上滑动
+
+                    that.nextIndex = that.nowIndex === arrLi.length - 1 ? 0 : that.nowIndex + 1;
+                    // arrLi[this.nextIndex].style.webkitTransform = arrLi[this.nextIndex].style.transform = `translate3d(0,${viewportHeight + movePoint.y}px,0)`;
+
+                    prevIndex = that.nowIndex === 0 ? arrLi.length - 1 : that.nowIndex - 1;
+
+                } else if (movePoint.y > 0) {
+
+                    //  向下滑动
+
+                    that.nextIndex = that.nowIndex === 0 ? arrLi.length - 1 : that.nowIndex - 1;
+                    // arrLi[this.nextIndex].style.webkitTransform = arrLi[this.nextIndex].style.transform = `translate3d(0,${-viewportHeight + movePoint.y}px,0)`;
+
+                    prevIndex = that.nowIndex === arrLi.length - 1 ? 0 : that.nowIndex + 1;
+
+                }
+
+                //  下一个页面滑动的样式
+                let moveY = -movePoint.y / Math.abs(movePoint.y) * viewportHeight + movePoint.y;
+
+                arrLi[prevIndex].style = 'display: none';
+
+                arrLi[that.nextIndex].classList.add('z-index');
+                arrLi[that.nextIndex].style = 'display: block';
+                arrLi[that.nextIndex].style.webkitTransform = arrLi[that.nextIndex].style.transform = `translate3d(0,${moveY}px,0)`;
+
+            });
+
+            /**
+             *  手指结束触摸事件
+             */
+            list.addEventListener('touchend', function () {
+
+                //  手指抬起时，页面呈现的样式
+                arrLi[that.nextIndex].style.webkitTransform = arrLi[that.nextIndex].style.transform = 'translate3d(0,0,0)';
+                arrLi[that.nextIndex].style.transition = '.5s';
+
+                let elementP = arrLi[that.nowIndex].querySelector('p');
+                elementP.classList.remove('animation-p');
+
+                arrLi[that.nextIndex].addEventListener('webkitTransitionEnd', function () {
+
+                    that.textAnimation(that.nextIndex);
+
+                    that.dotsActive(that.nextIndex);
+
+                    //  样式清除
+                    arrLi.forEach((item, index) => {
+                        if (index !== that.nextIndex) {
+                            item.style = 'display: none';
+                            item.classList.remove('z-index');
+                        }
+                    });
+                });
+
+                arrLi[that.nextIndex].addEventListener('transitionend', function () {
+
+                    that.textAnimation(that.nextIndex);
+                    that.dotsActive(that.nextIndex);
+
+                    //  样式清除
+                    arrLi.forEach((item, index) => {
+                        if (index !== that.nextIndex) {
+                            item.style = 'display: none';
+                            item.classList.remove('z-index');
+                        }
+                    });
+                });
+
+                that.autoPlay();
+
+            });
+
+        };
+
+        /**
+         *  文字的动画效果
+         */
+        textAnimation(index) {
+
+            let list = document.querySelector('#page .scenes-list'),
+                arrLi = list.querySelectorAll('li'),
+                elementP = arrLi[index].querySelector('p');
+
+            elementP.classList.add('animation-p');
+        };
+
+        /**
+         *  X轴方向的无缝滑动
+         */
+        swipePictureX() {
+
+            let {dom} = this.option,
+                that = this,
+                list = dom.querySelector('.scenes-list'),
+                viewportWidth = list.clientWidth,   //  获取页面的宽度
+                prevIndex = 0,                      //  前一张图片
+                scales = 1 / 4,                     //  缩放比例
+                movePoint = {},                     //  移动触摸事件对象
+                startPoint = {},                    //  开始触摸事件对象
+                arrLi = list.querySelectorAll('li');
+
+            list.addEventListener('touchstart', function (e) {
+
+                clearInterval(that.timer);
+
+                startPoint = {
+                    x: e.changedTouches[0].pageX,
+                    y: e.changedTouches[0].pageY
+                };
+
+                //  触摸开始时先把上一张页面重置默认
+                arrLi[that.nextIndex].classList.remove('z-index');
+                arrLi[that.nextIndex].style.transition = 'none';
+
+                that.nowIndex = that.nextIndex;
+
+            });
+
+            list.addEventListener('touchmove', function (e) {
+
+                let point = {
+                    x: e.changedTouches[0].pageX,
+                    y: e.changedTouches[0].pageY
+                };
+
+                movePoint = {
+                    x: point.x - startPoint.x,
+                    y: point.y - startPoint.y
+                };
+
+                let scale = 1 - Math.abs(movePoint.x * scales) / viewportWidth;
+                arrLi[that.nowIndex].style.webkitTransform = arrLi[that.nowIndex].style.transform = `translate3d(${movePoint.x * scales}px, 0, 0) scale(${scale})`;
+
+                if (movePoint.x > 0) {
+                    //    向右滑动
+                    that.nextIndex = that.nowIndex === 0 ? arrLi.length - 1 : that.nowIndex - 1;
+                    prevIndex = that.nowIndex === arrLi.length - 1 ? 0 : that.nowIndex + 1;
+
+                } else if (movePoint.x < 0) {
+                    //   向左滑动
+                    that.nextIndex = that.nowIndex === arrLi.length - 1 ? 0 : that.nowIndex + 1;
+                    prevIndex = that.nowIndex === 0 ? arrLi.length - 1 : that.nowIndex - 1;
+
+                }
+
+                let moveX = -movePoint.x / Math.abs(movePoint.x) * viewportWidth + movePoint.x;
+
+                arrLi[prevIndex].style = 'display: none';
+
+                arrLi[that.nextIndex].classList.add('z-index');
+                arrLi[that.nextIndex].style = 'display: block';
+                arrLi[that.nextIndex].style.webkitTransform = arrLi[that.nextIndex].style.transform = `translate3d(${moveX}px, 0, 0)`;
+
+            });
+
+            list.addEventListener('touchend', function (e) {
+
+                arrLi[that.nextIndex].style.webkitTransform = arrLi[that.nextIndex].style.transform = 'translate3d(0,0,0)';
+                arrLi[that.nextIndex].style.transition = '.5s';
+
+                let elementP = arrLi[that.nowIndex].querySelector('p');
+                elementP.classList.remove('animation-p');
+
+                arrLi[that.nextIndex].addEventListener('webkitTransitionEnd', function () {
+
+                    that.textAnimation(that.nextIndex);
+                    that.dotsActive(that.nextIndex);
+
+                    //  样式清除
+                    arrLi.forEach((item, index) => {
+                        if (index !== that.nextIndex) {
+                            item.style = 'display: none';
+                            item.classList.remove('z-index');
+                        }
+                    });
+
+                });
+
+                arrLi[that.nextIndex].addEventListener('transitionend', function () {
+
+                    that.textAnimation(that.nextIndex);
+                    that.dotsActive(that.nextIndex);
+
+                    //  样式清除
+                    arrLi.forEach((item, index) => {
+                        if (index !== that.nextIndex) {
+                            item.style = 'display: none';
+                            item.classList.remove('z-index');
+                        }
+                    });
+                });
+
+                that.autoPlay();
+
+            });
+
+        };
+
+        /**
+         *  自动播放函数
+         */
+        autoPlay() {
+
+            let {dom, isDir, autoPlayTime} = this.option,
+                list = dom.querySelector('.scenes-list'),
+                that = this,
+                arrLi = list.querySelectorAll('li'),
+                viewportHeight = list.clientHeight, //  获取页面的高度
+                viewportWidth = list.clientWidth;   //  获取页面的宽度
+
+            //  根据不同的方向赋值
+            let viewport = isDir === 'X' ? -viewportWidth : -viewportHeight;
+
+            /**
+             *  文字的动画效果
+             */
+            function textAnimation(nowIndex, nextIndex) {
+
+                let list = document.querySelector('#page .scenes-list'),
+                    arrLi = list.querySelectorAll('li'),
+                    elementP = arrLi[nowIndex].querySelector('p'),
+                    nextElementP = arrLi[nextIndex].querySelector('p');
+
+                nextElementP.classList.add('animation-p');
+                elementP.classList.remove('animation-p');
+            }
+
+            this.timer = setInterval(function () {
+
+                //  上一张页面和下一张页面联动
+                that.nowIndex = that.nextIndex;
+
+                //  延时不显示上一张页面
+                setTimeout(function () {
+                    arrLi[that.nowIndex].style = 'display: none';
+                    arrLi[that.nowIndex].style.transition = 'none';
+                    arrLi[that.nextIndex].classList.remove('z-index');
+                }, 1200);
+
+                //  无缝判断
+                that.nextIndex = that.nowIndex === arrLi.length - 1 ? 0 : that.nowIndex + 1;
+
+                //  显示下一页面；根据方向的不同，判断页面是从底部向上还是从左边向右
+                arrLi[that.nextIndex].style = 'display: block';
+                arrLi[that.nextIndex].classList.add('z-index');
+
+                arrLi[that.nowIndex].style.webkitTransform = arrLi[that.nowIndex].style.transform = `translate3d(0,0,0)`;
+                arrLi[that.nextIndex].style.webkitTransform = arrLi[that.nextIndex].style.transform = `translate3d(${isDir === 'X' ? viewport : 0}px,${isDir === 'Y' ? -viewport : 0}px,0)`;
+
+                //  下一页面延时一定时间后，滑动到left为0，top为0
+                setTimeout(function () {
+                    arrLi[that.nowIndex].style.webkitTransform = arrLi[that.nowIndex].style.transform = `translate3d(${isDir === 'X' ? -viewport : 0}px,${isDir === 'Y' ? viewport : 0}px,0)`;
+                    arrLi[that.nextIndex].style.webkitTransform = arrLi[that.nextIndex].style.transform = 'translate3d(0,0,0)';
+                    arrLi[that.nextIndex].style.transition = '1s';
+                    arrLi[that.nowIndex].style.transition = '1s';
+                    that.dotsActive(that.nextIndex);
+
+                }, 300);
+
+                //  文字显示效果
+                arrLi[that.nextIndex].addEventListener('webkitTransitionEnd', function () {
+                    textAnimation(that.nowIndex, that.nextIndex);
+                    arrLi[that.nowIndex].style.transition = 'none';
+                });
+                arrLi[that.nextIndex].addEventListener('transitionend', function () {
+                    textAnimation(that.nowIndex, that.nextIndex);
+                    arrLi[that.nowIndex].style.transition = 'none';
+                });
+
+            }, autoPlayTime)
+
+        };
+
+        /**
+         *  小圆点选中状态
+         */
+        dotsActive(activeIndex) {
+
+            let {dom} = this.option,
+                list = dom.querySelector('.dots-list'),
+                arrSpan = list.querySelectorAll('span');
+
+            arrSpan.forEach((item, index) => {
+
+                if (activeIndex === index) {
+                    item.classList.add('active');
+                } else {
+                    item.classList.remove('active');
+                }
+
+            })
+        }
+
     }
+
+    /**
+     *  生成小圆点
+     */
+    Scenes.createDots = function (num) {
+
+        let list = document.querySelector('.dots-list'),
+            inner = '';
+
+        for (let i = 0; i < num; i++) {
+            inner += `<span data-key=${i} class=${ i === 0 ? 'active' : ''}></span>`
+        }
+
+        return list.innerHTML = inner;
+    }
+
+
+    new Scenes({
+        dom: document.querySelector('#page'),
+        isDir: 'Y',             //  判断场景是需要X方向滑动还是Y方向滑动
+        autoPlay: true,         //  判断场景是否需要自动播放
+        autoPlayTime: 5000,     //  默认自动播放时间为五秒
+        dots: true              //  是否显示面板指示点
+    });
 
 </script>
 </body>
